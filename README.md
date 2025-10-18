@@ -65,30 +65,6 @@ The script will:
 2. Install and configure all DNS privacy services
 3. Start everything automatically
 
-### Alternative Deployment Methods
-
-#### Using deploy.sh Helper Script
-
-From your local machine:
-```bash
-# Copy script only
-./deploy.sh root@YOUR_SERVER_IP
-
-# Copy and execute immediately
-./deploy.sh root@YOUR_SERVER_IP --run
-```
-
-#### Manual Copy-Paste Method
-
-If wget/curl aren't available:
-```bash
-cat > install.sh << 'ENDOFSCRIPT'
-[Paste entire script content here]
-ENDOFSCRIPT
-
-sh install.sh
-```
-
 ## 📋 Post-Installation Steps
 
 ### 1. Complete AdGuard Home Setup
@@ -270,72 +246,6 @@ Check AdGuard logs:
 tail -50 /var/log/AdGuardHome.log
 ```
 
-### Line Ending Issues
-
-If you see errors like `line 7: : not found`, the script has Windows line endings:
-```bash
-# Fix line endings
-tr -d '\r' < install-dns-privacy-chain.sh > install.sh
-chmod +x install.sh
-sh install.sh
-```
-
-## 🔐 Security Recommendations
-
-### Essential Security Hardening
-
-1. **Configure a firewall** - The installer does NOT configure iptables. Set up manually:
-   ```bash
-   # Allow SSH, DNS, HTTP (example - customize for your needs)
-   iptables -A INPUT -i lo -j ACCEPT
-   iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-   iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-   iptables -A INPUT -p tcp --dport 53 -j ACCEPT
-   iptables -A INPUT -p udp --dport 53 -j ACCEPT
-   iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
-   iptables -P INPUT DROP
-   ```
-
-2. **Use SSH key authentication** - Disable password authentication
-   ```bash
-   # /etc/ssh/sshd_config
-   PasswordAuthentication no
-   ```
-
-3. **Change default SSH port** - Reduces automated attacks
-   ```bash
-   # /etc/ssh/sshd_config
-   Port 2222  # or your choice
-   ```
-
-4. **Enable HTTPS for AdGuard** - Protect web interface with TLS
-
-5. **Regular updates**
-   ```bash
-   apk update && apk upgrade
-   ```
-
-6. **Monitor logs** - Watch for suspicious activity
-   ```bash
-   tail -f /var/log/messages
-   ```
-
-### DNS Privacy Best Practices
-
-- Use AdGuard's blocklists to prevent tracking
-- Enable query logging only when troubleshooting
-- Rotate logs regularly to save disk space
-- Consider rate limiting to prevent abuse
-
-## 📊 System Requirements
-
-- **OS:** Alpine Linux 3.22+ (tested on 3.22.2)
-- **Kernel:** linux-lts (automatically installed)
-- **RAM:** 512MB minimum, 1GB recommended
-- **Disk:** 2GB minimum (mostly for linux-firmware)
-- **CPU:** Any (tested on x86_64 and aarch64)
-- **Network:** Public IPv4 address, outbound HTTPS/Tor access
-
 ## 🗑️ Uninstallation
 
 To completely remove all components:
@@ -365,43 +275,3 @@ rm -f /etc/tor/torrc
 rm -f /etc/dnscrypt-proxy/dnscrypt-proxy.toml
 rm -f /etc/unbound/unbound.conf
 ```
-
-## ❓ FAQ
-
-**Q: Why two phases? Can't this be done in one run?**
-A: Alpine's virt kernel lacks full netfilter support. We must install linux-lts and reboot before services can function properly.
-
-**Q: Will my Tor node relay traffic for others?**
-A: No. Tor is configured with `ClientOnly 1` - it will never act as a relay or exit node.
-
-**Q: Does this work on other distributions?**
-A: No, this script is Alpine Linux specific (uses apk, OpenRC). Could be adapted for other distros.
-
-**Q: Why isn't iptables/firewall configured?**
-A: During testing, automated firewall configuration caused SSH lockouts on reboot. Configure manually for your specific needs.
-
-**Q: Can I run this on an existing system?**
-A: Not recommended. This script is designed for fresh VPS installations to avoid conflicts.
-
-**Q: What DNS resolvers does dnscrypt-proxy use?**
-A: It uses public resolver lists that support DoH/ODoH and have no-logging policies. See dnscrypt-proxy.toml for details.
-
-## 📜 License
-
-This script is provided as-is for educational and privacy purposes.
-
-## 🙏 Credits
-
-Based on the Wiregate DNS privacy architecture. Adapted for standalone Alpine Linux VPS deployment.
-
-## 📞 Support
-
-For issues or questions:
-- Check logs: `/var/log/messages` and `/var/log/AdGuardHome.log`
-- Verify service status: `rc-status -a`
-- Test each DNS layer individually (see Troubleshooting)
-- Open an issue on GitHub
-
----
-
-**⚠️ Privacy Notice:** While this setup significantly enhances DNS privacy, no solution is 100% perfect. Use in combination with other privacy tools (VPN, browser extensions, etc.) for comprehensive protection.
